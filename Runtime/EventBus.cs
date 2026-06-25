@@ -81,6 +81,7 @@ namespace JulyEvents
 
         private readonly Dictionary<Type, IHandlerList> _handlers = new();
         private readonly Dictionary<object, List<(Type type, Delegate handler)>> _ownerMap = new();
+        private readonly Dictionary<Delegate, object> _handlerToOwner = new();
         private bool _disposed;
 
         public void Subscribe<T>(Action<T> handler, object owner)
@@ -104,6 +105,7 @@ namespace JulyEvents
             }
 
             ownerList.Add((type, handler));
+            _handlerToOwner[handler] = owner;
         }
 
         public void Unsubscribe<T>(Action<T> handler)
@@ -123,17 +125,22 @@ namespace JulyEvents
 
         private void RemoveFromOwnerMap(Type eventType, Delegate handler)
         {
-            foreach (var ownerList in _ownerMap.Values)
+            if (!_handlerToOwner.TryGetValue(handler, out var owner)) return;
+            _handlerToOwner.Remove(handler);
+
+            if (!_ownerMap.TryGetValue(owner, out var ownerList)) return;
+
+            for (int i = ownerList.Count - 1; i >= 0; i--)
             {
-                for (int i = ownerList.Count - 1; i >= 0; i--)
+                if (ownerList[i].type == eventType && ownerList[i].handler == handler)
                 {
-                    if (ownerList[i].type == eventType && ownerList[i].handler == handler)
-                    {
-                        ownerList.RemoveAt(i);
-                        return;
-                    }
+                    ownerList.RemoveAt(i);
+                    break;
                 }
             }
+
+            if (ownerList.Count == 0)
+                _ownerMap.Remove(owner);
         }
 
         public void UnsubscribeAll(object owner)
@@ -149,6 +156,8 @@ namespace JulyEvents
                     if (list.IsEmpty)
                         _handlers.Remove(type);
                 }
+
+                _handlerToOwner.Remove(handler);
             }
 
             _ownerMap.Remove(owner);
@@ -169,6 +178,7 @@ namespace JulyEvents
             _disposed = true;
             _handlers.Clear();
             _ownerMap.Clear();
+            _handlerToOwner.Clear();
         }
     }
 }
