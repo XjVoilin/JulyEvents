@@ -1,6 +1,6 @@
 {
   "name": "com.july.events",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "displayName": "JulyEvents",
   "description": "轻量级事件总线契约与默认实现，提供统一的 IEventBus 接口",
   "unity": "2021.3",
